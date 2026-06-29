@@ -314,3 +314,26 @@ aside {
   color: $cs-coral-dk;
 }
 .navbar .dropdown-divider { margin: .35rem .2rem; border-top-color: $cs-border; }
+
+// ── page eyebrow on article / reference headers (matches mockups) ────────────
+.template-article .page-header,
+.template-reference-topic .page-header,
+.template-reference-index .page-header { position: relative; }
+.template-article .page-header::before { content: "Article"; }
+.template-reference-topic .page-header::before { content: "Reference"; }
+.template-reference-index .page-header::before { content: "Reference"; }
+.template-article .page-header::before,
+.template-reference-topic .page-header::before,
+.template-reference-index .page-header::before {
+  display: block;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+  color: $cs-coral; font-weight: 600; margin-bottom: .55rem;
+}
+// byline (authors / date / source) reads as one calm muted line
+.template-article .page-header .author,
+.template-article .page-header .date,
+.template-reference-topic .page-header .dont-index,
+.template-article .page-header .dont-index {
+  color: $cs-muted; font-size: .9rem;
+}

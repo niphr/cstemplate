@@ -6,3 +6,4 @@
 ^@eaDir$
 ^.*\.DS_Store$
 ^LICENSE\.md$
+^HANDOFF-design\.md$
