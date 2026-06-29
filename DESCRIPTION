@@ -1,0 +1,18 @@
+Package: cstemplate
+Title: Shared pkgdown House Style for the cs* Package Family
+Version: 0.1.0
+Authors@R: c(
+  person(c("Richard","Aubrey"), "White", email = "hello@rwhite.no", role = c("aut", "cre"),
+    comment = c(ORCID = "0000-0002-6747-1726"))
+  )
+Description: A pkgdown template package that gives every cs* package a
+    consistent Bootstrap 5 house style: Spectral + Source Sans 3 typography,
+    the navy/coral palette, a shared navbar with a "cs* family" switcher,
+    and a common footer. Packages opt in with
+    template: { package: cstemplate } in their own _pkgdown.yml.
+License: MIT + file LICENSE
+URL: https://niphr.github.io/cstemplate/, https://github.com/niphr/cstemplate
+BugReports: https://github.com/niphr/cstemplate/issues
+Encoding: UTF-8
+Config/Needs/website: pkgdown
+RoxygenNote: 7.3.2

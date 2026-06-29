@@ -1,0 +1,170 @@
+// ===========================================================================
+// cstemplate :: inst/pkgdown/BS5/_rules.scss
+// Custom CSS — imported AFTER Bootstrap. $cs-* tokens come from _variables.scss.
+// Selectors target pkgdown 2.x (Bootstrap 5) markup.
+// ===========================================================================
+
+// ── brand wordmark ─────────────────────────────────────────────────────────
+.navbar-brand {
+  font-family: "Spectral", Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -.01em;
+}
+// version pill next to the brand
+.navbar .navbar-brand + small,
+.navbar .version {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: .72rem;
+  color: $cs-tint-fg;
+  background: $cs-tint;
+  padding: .15rem .45rem;
+  border-radius: 1rem;
+}
+.navbar { border-bottom: 1px solid $cs-border; }
+
+// ── headings & lede ─────────────────────────────────────────────────────────
+main h1, main h2, main h3 { letter-spacing: -.01em; }
+
+// Home hero: big serif title + coral rule + lede first paragraph.
+.template-home {
+  main > h1:first-of-type {
+    font-size: 2.8rem;
+    margin-bottom: .4rem;
+    padding-bottom: 1.1rem;
+    border-bottom: 0;
+    position: relative;
+  }
+  // coral rule under the title
+  main > h1:first-of-type::after {
+    content: "";
+    position: absolute; left: 0; bottom: 0;
+    width: 64px; height: 3px; background: $cs-coral;
+  }
+  // first paragraph reads as a lede
+  main > h1:first-of-type + p {
+    font-family: "Spectral", Georgia, serif;
+    font-size: 1.25rem;
+    line-height: 1.5;
+    color: #42535f;
+    max-width: 36em;
+  }
+}
+
+// Section-label overline helper (use <p class="overline"> in README if wanted)
+.overline {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+  color: $cs-coral; margin-bottom: 1rem;
+}
+
+// ── code blocks (downlit / pandoc tokens) ──────────────────────────────────
+code {
+  background: #f3efe8;
+  color: $cs-navy;
+  padding: .12em .4em;
+  border-radius: 4px;
+  font-size: .88em;
+}
+pre {
+  background: $cs-ink-bg;
+  border: 0;
+  border-radius: .7rem;
+  padding: 1.05rem 1.25rem;
+  code { background: none; color: #e9ecef; padding: 0; }
+  // skylighting / downlit token classes
+  .co { color: #8b9aa6; font-style: italic; }   // comment
+  .st, .sc { color: #9ecb8a; }                  // string
+  .fu { color: #f3a08e; }                       // function
+  .dv, .fl, .bn { color: #e7c18a; }             // numbers
+  .kw, .cf { color: #c4b5e0; }                  // keyword / control
+  .op { color: #b6c2cc; }                       // operator
+}
+// example output (pkgdown wraps in pre.r-output / .sourceCode-output)
+.r-output, pre.r-output, .output pre {
+  background: none;
+  border-left: 2px solid $cs-border;
+  border-radius: 0;
+  padding: .15rem 0 .15rem 1.1rem;
+  color: $cs-muted;
+}
+
+// ── home sidebar (Links / License / Citation / Developers) ─────────────────
+aside {
+  h2 {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+    color: $cs-faint; font-weight: 600;
+  }
+  .developers li { list-style: none; }
+}
+
+// ── reference index ─────────────────────────────────────────────────────────
+// Group headers get a trailing hairline; rows ride on whitespace (no per-row
+// dividers). NB: exact ref-index markup can shift between pkgdown versions.
+.template-reference-index {
+  .section > h2 {
+    display: flex; align-items: center; gap: .8rem;
+    font-size: 1rem; letter-spacing: .1em; text-transform: uppercase;
+    &::after { content: ""; flex: 1; height: 1px; background: $cs-border; }
+  }
+  .ref-index, dl.ref-index { border: 0; }
+  .ref-index tr, .ref-index dt, .ref-index dd { border: 0 !important; }
+  // function name(s) as a full-width header, description indented beneath
+  .ref-index td:first-child, .ref-index dt {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-weight: 600;
+  }
+  .ref-index td:last-child, .ref-index dd { padding-left: 1.1rem; color: $cs-muted; }
+  // when a row lists several topics, separate them with a middle dot
+  .ref-index td:first-child a + a::before,
+  .ref-index dt a + a::before {
+    content: "·"; color: #cab9a8; margin: 0 .7rem; font-weight: 400;
+  }
+}
+
+// ── reference detail (incl. R6) ─────────────────────────────────────────────
+// Arguments tables: header underline only, rows on whitespace.
+.template-reference-topic {
+  table { border-collapse: collapse; }
+  th {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .7rem; letter-spacing: .12em; text-transform: uppercase;
+    color: $cs-faint; border-bottom: 1px solid $cs-border;
+  }
+  td { border: 0; vertical-align: top; }
+  td:first-child { font-family: "JetBrains Mono", ui-monospace, monospace; font-weight: 600; }
+  // R6 method blocks — keep the divider between methods, drop the rest
+  .sourceCode + table { margin-top: .4rem; }
+  h3 code { color: $cs-tint-fg; }
+}
+
+// ── “On this page” contents rail ────────────────────────────────────────────
+#toc, aside nav[aria-label="On this page"] {
+  .nav-link {
+    border-left: 2px solid $cs-border;
+    color: $cs-muted; font-size: .85rem;
+    &.active { color: $cs-navy; border-left-color: $cs-coral; font-weight: 600; }
+  }
+}
+
+// ── footer + cs* family strip ───────────────────────────────────────────────
+.template-footer .pkgdown-footer, footer {
+  border-top: 1px solid $cs-border;
+}
+.cs-family {
+  display: flex; flex-wrap: wrap; gap: .35rem 1rem; align-items: center;
+  margin-top: .9rem;
+  .cs-family-label {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
+    color: #bfb6a8;
+  }
+  a {
+    font-family: "Spectral", Georgia, serif;
+    font-size: .95rem; color: $cs-muted; text-decoration: none;
+    &:hover { color: $cs-coral; }
+  }
+}
+
+// ── badges (CRAN status etc.) sit a touch calmer ────────────────────────────
+.template-home aside img { vertical-align: middle; }

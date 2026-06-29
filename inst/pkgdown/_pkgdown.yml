@@ -1,0 +1,72 @@
+# ---------------------------------------------------------------------------
+# cstemplate :: inst/pkgdown/_pkgdown.yml
+# Defaults inherited by every package that sets `template: package: cstemplate`.
+# Anything here can be overridden in the consuming package's own _pkgdown.yml.
+# ---------------------------------------------------------------------------
+
+template:
+  bootstrap: 5
+  # Fonts are auto-imported from Google by bslib; colours flow into the SCSS.
+  bslib:
+    primary: "#e0533c"          # coral  — links, accents, active states
+    bg: "#fbfaf7"               # warm off-white page background
+    fg: "#1e2c3a"               # navy ink
+    base_font: { google: "Source Sans 3" }
+    heading_font: { google: "Spectral" }
+    code_font: { google: "JetBrains Mono" }
+    headings-font-weight: 600
+    link-color: "#1e2c3a"
+    link-hover-color: "#e0533c"
+    # Bundled SCSS lives in inst/pkgdown/BS5/_variables.scss and _rules.scss
+    # and is picked up automatically — no need to list it here.
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [family, search, github]
+  components:
+    # The cs* family switcher — identical on every site.
+    family:
+      text: "cs* family"
+      menu:
+      - text: "cs9 — project framework"
+        href: https://niphr.github.io/cs9/
+      - text: "csalert — surveillance alerts"
+        href: https://niphr.github.io/csalert/
+      - text: "csdata — structural data"
+        href: https://niphr.github.io/csdata/
+      - text: "csdb — database access"
+        href: https://niphr.github.io/csdb/
+      - text: "csmaps — maps of Norway"
+        href: https://niphr.github.io/csmaps/
+      - text: "csstyle — output styling"
+        href: https://niphr.github.io/csstyle/
+      - text: "cstidy — tidy surveillance data"
+        href: https://niphr.github.io/cstidy/
+      - text: "cstime — weeks & dates"
+        href: https://niphr.github.io/cstime/
+      - text: "csutil — shared utilities"
+        href: https://niphr.github.io/csutil/
+      - text: ---------
+      - text: "Package registry"
+        href: https://niphr.github.io/
+
+footer:
+  structure:
+    left:  [developed_by, family_strip]
+    right: [built_with]
+  components:
+    # Full-width family strip; CSS in _rules.scss lays it out + styles it.
+    family_strip: >
+      <nav class="cs-family" aria-label="cs* family">
+        <span class="cs-family-label">cs* family</span>
+        <a href="https://niphr.github.io/cs9/">cs9</a>
+        <a href="https://niphr.github.io/csalert/">csalert</a>
+        <a href="https://niphr.github.io/csdata/">csdata</a>
+        <a href="https://niphr.github.io/csdb/">csdb</a>
+        <a href="https://niphr.github.io/csmaps/">csmaps</a>
+        <a href="https://niphr.github.io/csstyle/">csstyle</a>
+        <a href="https://niphr.github.io/cstidy/">cstidy</a>
+        <a href="https://niphr.github.io/cstime/">cstime</a>
+        <a href="https://niphr.github.io/csutil/">csutil</a>
+      </nav>

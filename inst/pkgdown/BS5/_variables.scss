@@ -1,0 +1,34 @@
+// ===========================================================================
+// cstemplate :: inst/pkgdown/BS5/_variables.scss
+// Sass variables — imported BEFORE Bootstrap. Tune the framework here.
+// (Brand fonts + primary/bg/fg are set in _pkgdown.yml > template > bslib.)
+// ===========================================================================
+
+// ── palette tokens (reused in _rules.scss) ────────────────────────────────
+$cs-navy:      #1e2c3a;
+$cs-coral:     #e0533c;
+$cs-coral-dk:  #c8432e;
+$cs-bg:        #fbfaf7;
+$cs-border:    #ece8e1;
+$cs-muted:     #6a7682;
+$cs-faint:     #9a958c;
+$cs-tint:      #f6e3d9;   // coral wash — chips / overlines
+$cs-tint-fg:   #90573f;
+$cs-ink-bg:    #1e2c3a;   // code block background
+
+// ── Bootstrap overrides ────────────────────────────────────────────────────
+$border-color:                 $cs-border;
+$table-border-color:           $cs-border;
+$nav-link-font-weight:         600;
+
+$navbar-light-color:           rgba($cs-navy, .72);
+$navbar-light-hover-color:     $cs-coral;
+$navbar-light-active-color:    $cs-coral;
+$navbar-light-brand-color:     $cs-navy;
+$navbar-light-brand-hover-color: $cs-navy;
+
+$border-radius:                .55rem;
+$border-radius-lg:             .7rem;
+
+// pkgdown bits
+$navbar-padding-y:             .9rem;
