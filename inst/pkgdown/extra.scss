@@ -176,3 +176,80 @@ aside {
 
 // ── badges (CRAN status etc.) sit a touch calmer ────────────────────────────
 .template-home aside img { vertical-align: middle; }
+
+// ===========================================================================
+// HOME PAGE COMPONENTS (authored in each package's index.md)
+// ===========================================================================
+
+// ── hero band ────────────────────────────────────────────────────────────
+.cs-hero {
+  display: grid; grid-template-columns: 1fr auto; gap: 2.2rem; align-items: center;
+  border: 1px solid $cs-border; border-radius: .9rem; background: #fff;
+  padding: 2.4rem 2.6rem; margin: .25rem 0 2.4rem;
+}
+.cs-hero-body { min-width: 0; }
+.cs-hero h1 {
+  font-family: "Spectral", Georgia, serif; font-weight: 600;
+  font-size: 2.7rem; line-height: 1.04; letter-spacing: -.02em; margin: 0;
+}
+.cs-hero .cs-rule { width: 64px; height: 3px; background: $cs-coral; margin: 1.1rem 0; }
+.cs-hero .cs-lede {
+  font-family: "Spectral", Georgia, serif; font-size: 1.2rem; line-height: 1.5;
+  color: #42535f; max-width: 34em; margin: 0 0 1.5rem;
+}
+.cs-hero .cs-lede em { color: $cs-navy; font-style: italic; }
+.cs-hero .cs-hero-art { display: flex; align-items: center; justify-content: center; }
+.cs-hero .cs-hero-art img { width: 150px; height: auto; }
+
+// ── CTA buttons ────────────────────────────────────────────────────────────
+.cs-cta { display: flex; gap: 1.4rem; align-items: center; flex-wrap: wrap; }
+.cs-btn {
+  display: inline-block; background: $cs-navy; color: #fff !important;
+  font-weight: 600; font-size: .95rem; padding: .6rem 1.2rem; border-radius: .5rem;
+  text-decoration: none !important;
+}
+.cs-btn:hover { background: #2b3e50; }
+.cs-btn-link {
+  font-weight: 600; color: $cs-navy !important; text-decoration: none !important;
+  border-bottom: 2px solid $cs-coral; padding-bottom: 2px;
+}
+.cs-btn-link:hover { color: $cs-coral !important; }
+
+// ── section label (matches the overline) ────────────────────────────────────
+.cs-section {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+  color: $cs-faint; font-weight: 600;
+  display: flex; align-items: center; gap: .9rem; margin: 2.6rem 0 1.4rem;
+}
+.cs-section::after { content: ""; flex: 1; height: 1px; background: $cs-border; }
+
+// ── feature cards (numbered) ────────────────────────────────────────────────
+.cs-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6rem; }
+.cs-card .cs-card-num {
+  font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .8rem; color: $cs-faint;
+}
+.cs-card h3 {
+  font-family: "Spectral", Georgia, serif; font-weight: 600; font-size: 1.3rem; margin: .3rem 0 .4rem;
+}
+.cs-card p { color: $cs-muted; font-size: .95rem; margin: 0; }
+
+// ── gallery ──────────────────────────────────────────────────────────────────
+.cs-gallery { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6rem; }
+.cs-gallery figure { margin: 0; }
+.cs-gallery .cs-tile {
+  border: 1px solid $cs-border; border-radius: .8rem; background: #fff;
+  aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center;
+  padding: 1rem; overflow: hidden;
+}
+.cs-gallery .cs-tile img { max-width: 100%; max-height: 100%; }
+.cs-gallery figcaption {
+  font-family: "JetBrains Mono", ui-monospace, monospace; font-size: .8rem;
+  color: $cs-muted; margin-top: .6rem;
+}
+
+@media (max-width: 800px) {
+  .cs-hero { grid-template-columns: 1fr; }
+  .cs-hero .cs-hero-art img { width: 120px; }
+  .cs-cards, .cs-gallery { grid-template-columns: 1fr; }
+}
