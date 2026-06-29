@@ -279,3 +279,35 @@ aside {
   font-family: "Spectral", Georgia, serif; font-weight: 600;
   font-size: 2.7rem; line-height: 1.04; letter-spacing: -.02em; margin: 0;
 }
+
+// ── FIX: links inside dark code blocks (downlit wraps fn names in <a>) ───────
+// Default link colour is navy → invisible on the dark code bg. Make them light.
+pre a, pre code a {
+  color: #e7ecf1 !important;
+  text-decoration-color: rgba(255,255,255,.35);
+}
+pre a:hover, pre code a:hover { color: $cs-coral !important; }
+
+// ── navbar dropdown (cs* family) — styled, not the default Bootstrap box ─────
+.navbar .dropdown-menu {
+  background: #fff;
+  border: 1px solid $cs-border;
+  border-radius: .7rem;
+  padding: .45rem;
+  margin-top: .45rem;
+  min-width: 17rem;
+  box-shadow: 0 14px 34px rgba(30,44,58,.14);
+}
+.navbar .dropdown-item {
+  font-family: "Spectral", Georgia, serif;
+  font-size: .98rem;
+  color: $cs-navy;
+  border-radius: .45rem;
+  padding: .46rem .7rem;
+}
+.navbar .dropdown-item:hover,
+.navbar .dropdown-item:focus {
+  background: $cs-tint;
+  color: $cs-coral-dk;
+}
+.navbar .dropdown-divider { margin: .35rem .2rem; border-top-color: $cs-border; }
