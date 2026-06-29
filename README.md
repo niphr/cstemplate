@@ -11,11 +11,13 @@ registry. (For the real output-styling package, see
 
 ## Use it in a package
 
-1. Add `cstemplate` to the package's website dependencies:
+1. Declare `cstemplate` as a website dependency in the package's `DESCRIPTION`,
+   as an **inline GitHub ref** (the CI installs `Config/Needs/website` entries
+   directly with pak, so a bare package name — with or without a `Remotes:`
+   line — will *not* resolve):
 
-   ```r
-   usethis::use_dev_package("cstemplate", type = "Config/Needs/website",
-                            remote = "niphr/cstemplate")
+   ```
+   Config/Needs/website: niphr/cstemplate
    ```
 
 2. Point the package's `_pkgdown.yml` at the template:
