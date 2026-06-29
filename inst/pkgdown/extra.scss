@@ -253,3 +253,29 @@ aside {
   .cs-hero .cs-hero-art img { width: 120px; }
   .cs-cards, .cs-gallery { grid-template-columns: 1fr; }
 }
+
+// ── home layout: 2-col (content + sidebar); hero spans full width on top ─────
+// .cs-home is always a 2-col grid (mirrors pkgdown's default main/sidebar).
+// The home template hoists .cs-hero to be a direct child of .cs-home so it can
+// span both columns; if JS is off the hero stays in-column (graceful fallback).
+.cs-home {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 18rem;
+  column-gap: 2.6rem;
+  align-items: start;
+}
+.cs-home > .cs-home-main { grid-column: 1; min-width: 0; }
+.cs-home > .cs-home-aside { grid-column: 2; }
+.cs-home > .cs-hero { grid-column: 1 / -1; margin-bottom: 0; }
+@media (max-width: 800px) {
+  .cs-home { grid-template-columns: 1fr; }
+  .cs-home > .cs-home-aside { grid-column: 1; }
+}
+
+// neutralise pkgdown's page-header (it injects logo + h1 inside the hero)
+.cs-hero .page-header { margin: 0; padding: 0; border: 0; min-height: 0; }
+.cs-hero .page-header .logo { display: none; }   // we show our own .cs-hero-art logo
+.cs-hero .page-header h1 {
+  font-family: "Spectral", Georgia, serif; font-weight: 600;
+  font-size: 2.7rem; line-height: 1.04; letter-spacing: -.02em; margin: 0;
+}
