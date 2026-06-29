@@ -86,13 +86,24 @@ pre {
   border-radius: .7rem;
   padding: 1.05rem 1.25rem;
   code { background: none; color: #e9ecef; padding: 0; }
-  .co { color: #8b9aa6; font-style: italic; }   // comment
-  .st, .sc { color: #9ecb8a; }                  // string
-  .fu { color: #f3a08e; }                       // function
-  .dv, .fl, .bn { color: #e7c18a; }             // numbers
-  .kw, .cf { color: #c4b5e0; }                  // keyword / control
-  .op { color: #b6c2cc; }                       // operator
 }
+// Token palette for dark code blocks. pkgdown's built-in highlight CSS colours
+// `code span.X` for a LIGHT background and out-specifies loose rules, so we use
+// a high-specificity catch-all (everything light) + accent classes, all marked
+// !important so NOTHING can render dark-on-dark.
+pre code span { color: #e7ecf1 !important; }                       // default: light
+pre code span.co, pre code span.do { color: #8b9aa6 !important; font-style: italic; } // comment/output
+pre code span.st, pre code span.sc, pre code span.ss { color: #9ecb8a !important; }   // string
+pre code span.fu { color: #f3a08e !important; }                   // function
+pre code span.va { color: #e7ecf1 !important; }                   // variable (dataset names)
+pre code span.dv, pre code span.fl, pre code span.bn { color: #e7c18a !important; }   // numbers
+pre code span.cn, pre code span.dt { color: #e7c18a !important; } // constants / types
+pre code span.kw, pre code span.cf { color: #c4b5e0 !important; } // keyword / control
+pre code span.op { color: #b6c2cc !important; }                   // operator
+// downlit wraps fn/dataset names in <a>; let the link take its token colour
+// (coral for functions, light for variables) instead of the dark page link colour
+pre a, pre code a { color: inherit !important; text-decoration-color: rgba(255,255,255,.32); }
+pre a:hover, pre code a:hover { color: $cs-coral !important; }
 // example output (pkgdown wraps in pre.r-output / .sourceCode-output)
 .r-output, pre.r-output, .output pre {
   background: none;
@@ -279,14 +290,6 @@ aside {
   font-family: "Spectral", Georgia, serif; font-weight: 600;
   font-size: 2.7rem; line-height: 1.04; letter-spacing: -.02em; margin: 0;
 }
-
-// ── FIX: links inside dark code blocks (downlit wraps fn names in <a>) ───────
-// Default link colour is navy → invisible on the dark code bg. Make them light.
-pre a, pre code a {
-  color: #e7ecf1 !important;
-  text-decoration-color: rgba(255,255,255,.35);
-}
-pre a:hover, pre code a:hover { color: $cs-coral !important; }
 
 // ── navbar dropdown (cs* family) — styled, not the default Bootstrap box ─────
 .navbar .dropdown-menu {
