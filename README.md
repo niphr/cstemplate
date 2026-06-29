@@ -38,17 +38,21 @@ overrides still work: anything you set in your own `_pkgdown.yml` wins.
 
 ```
 inst/pkgdown/
-  _pkgdown.yml              navbar + footer structure, fonts, palette (bslib)
-  BS5/_variables.scss       Sass variables — imported before Bootstrap
-  BS5/_rules.scss           custom CSS — imported after Bootstrap
+  _pkgdown.yml              navbar + footer structure, fonts, palette + Bootstrap
+                            variable overrides (template > bslib)
+  extra.scss                custom CSS rules, added after Bootstrap
 ```
+
+> Note: a pkgdown *template* package ships its custom CSS via
+> `inst/pkgdown/extra.scss` (the "rules" layer). Files under `inst/pkgdown/BS5/`
+> are **not** sourced into consuming sites, so all component styling lives in
+> `extra.scss`; Sass-variable overrides go in `template > bslib` in `_pkgdown.yml`.
 
 ## Editing the look
 
-- **Colours / fonts** → `_pkgdown.yml` (`template > bslib`) and the `$cs-*`
-  tokens at the top of `BS5/_variables.scss`.
+- **Colours / fonts / Bootstrap variables** → `_pkgdown.yml` (`template > bslib`).
 - **Component styling** (hero, code blocks, reference index, footer strip) →
-  `BS5/_rules.scss`.
+  `extra.scss` (the `$cs-*` tokens are defined at its top).
 - **Family menu / footer links** → `_pkgdown.yml` components.
 
 The umbrella registry site (niphr.github.io) is a Jekyll site; it reuses the same

@@ -17,8 +17,16 @@ template:
     headings-font-weight: 600
     link-color: "#1e2c3a"
     link-hover-color: "#e0533c"
-    # Bundled SCSS lives in inst/pkgdown/BS5/_variables.scss and _rules.scss
-    # and is picked up automatically — no need to list it here.
+    # Bootstrap variable overrides (applied BEFORE Bootstrap by bslib).
+    border-color: "#ece8e1"
+    border-radius: "0.55rem"
+    border-radius-lg: "0.7rem"
+    navbar-light-color: "rgba(30,44,58,.72)"
+    navbar-light-hover-color: "#e0533c"
+    navbar-light-active-color: "#e0533c"
+    navbar-light-brand-color: "#1e2c3a"
+    navbar-light-brand-hover-color: "#1e2c3a"
+    # Custom CSS rules live in inst/pkgdown/extra.scss (applied AFTER Bootstrap).
 
 navbar:
   structure:

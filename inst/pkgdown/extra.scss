@@ -1,8 +1,23 @@
 // ===========================================================================
-// cstemplate :: inst/pkgdown/BS5/_rules.scss
-// Custom CSS — imported AFTER Bootstrap. $cs-* tokens come from _variables.scss.
+// cstemplate :: inst/pkgdown/extra.scss
+// Custom CSS for the cs* house style. pkgdown adds a template package's
+// extra.scss to the bslib ruleset (AFTER Bootstrap), so it can use Bootstrap
+// + bslib Sass variables. Palette/typography come from template > bslib in
+// _pkgdown.yml; the $cs-* tokens below are local helpers for these rules.
 // Selectors target pkgdown 2.x (Bootstrap 5) markup.
 // ===========================================================================
+
+// ── palette tokens ─────────────────────────────────────────────────────────
+$cs-navy:      #1e2c3a;
+$cs-coral:     #e0533c;
+$cs-coral-dk:  #c8432e;
+$cs-bg:        #fbfaf7;
+$cs-border:    #ece8e1;
+$cs-muted:     #6a7682;
+$cs-faint:     #9a958c;
+$cs-tint:      #f6e3d9;   // coral wash — chips / overlines
+$cs-tint-fg:   #90573f;
+$cs-ink-bg:    #1e2c3a;   // code block background
 
 // ── brand wordmark ─────────────────────────────────────────────────────────
 .navbar-brand {
@@ -26,7 +41,9 @@
 main h1, main h2, main h3 { letter-spacing: -.01em; }
 
 // Home hero: big serif title + coral rule + lede first paragraph.
-.template-home {
+// Scope to the home page; pkgdown labels it body.template-home, but we also
+// match the home layout container so the hero survives markup changes.
+.template-home, body:has(.template-article-index) .template-home {
   main > h1:first-of-type {
     font-size: 2.8rem;
     margin-bottom: .4rem;
@@ -34,13 +51,11 @@ main h1, main h2, main h3 { letter-spacing: -.01em; }
     border-bottom: 0;
     position: relative;
   }
-  // coral rule under the title
   main > h1:first-of-type::after {
     content: "";
     position: absolute; left: 0; bottom: 0;
     width: 64px; height: 3px; background: $cs-coral;
   }
-  // first paragraph reads as a lede
   main > h1:first-of-type + p {
     font-family: "Spectral", Georgia, serif;
     font-size: 1.25rem;
@@ -71,7 +86,6 @@ pre {
   border-radius: .7rem;
   padding: 1.05rem 1.25rem;
   code { background: none; color: #e9ecef; padding: 0; }
-  // skylighting / downlit token classes
   .co { color: #8b9aa6; font-style: italic; }   // comment
   .st, .sc { color: #9ecb8a; }                  // string
   .fu { color: #f3a08e; }                       // function
@@ -99,8 +113,6 @@ aside {
 }
 
 // ── reference index ─────────────────────────────────────────────────────────
-// Group headers get a trailing hairline; rows ride on whitespace (no per-row
-// dividers). NB: exact ref-index markup can shift between pkgdown versions.
 .template-reference-index {
   .section > h2 {
     display: flex; align-items: center; gap: .8rem;
@@ -109,13 +121,11 @@ aside {
   }
   .ref-index, dl.ref-index { border: 0; }
   .ref-index tr, .ref-index dt, .ref-index dd { border: 0 !important; }
-  // function name(s) as a full-width header, description indented beneath
   .ref-index td:first-child, .ref-index dt {
     font-family: "JetBrains Mono", ui-monospace, monospace;
     font-weight: 600;
   }
   .ref-index td:last-child, .ref-index dd { padding-left: 1.1rem; color: $cs-muted; }
-  // when a row lists several topics, separate them with a middle dot
   .ref-index td:first-child a + a::before,
   .ref-index dt a + a::before {
     content: "·"; color: #cab9a8; margin: 0 .7rem; font-weight: 400;
@@ -123,7 +133,6 @@ aside {
 }
 
 // ── reference detail (incl. R6) ─────────────────────────────────────────────
-// Arguments tables: header underline only, rows on whitespace.
 .template-reference-topic {
   table { border-collapse: collapse; }
   th {
@@ -133,7 +142,6 @@ aside {
   }
   td { border: 0; vertical-align: top; }
   td:first-child { font-family: "JetBrains Mono", ui-monospace, monospace; font-weight: 600; }
-  // R6 method blocks — keep the divider between methods, drop the rest
   .sourceCode + table { margin-top: .4rem; }
   h3 code { color: $cs-tint-fg; }
 }
