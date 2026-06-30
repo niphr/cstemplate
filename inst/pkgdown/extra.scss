@@ -289,6 +289,12 @@ aside {
   color: $cs-muted; margin-top: .6rem;
 }
 
+// Content images scale down to their column instead of overflowing it
+// (e.g. wide figures like the csstyle palette banner).
+.cs-home-main img,
+.template-article main img,
+.template-reference-topic main img { max-width: 100%; height: auto; }
+
 @media (max-width: 800px) {
   .cs-hero { grid-template-columns: 1fr; }
   .cs-hero .cs-hero-art img { width: 120px; }
