@@ -1,0 +1,34 @@
+{{! cstemplate :: content-home.html ----------------------------------------
+    Full-width hero band + the standard pkgdown content/sidebar row.
+
+    The hero is data-driven: set it per package under `template: params: hero:`
+    in that package's _pkgdown.yml (see cstemplate/README.md). Fields:
+      overline, title, lede (HTML ok), cta.primary{text,href},
+      cta.secondary{text,href}. The logo is taken from the package automatically.
+
+    When a package sets no `hero:` params, nothing extra is emitted and the page
+    falls back to pkgdown's normal home (its own page header). ------------------}}
+{{#yaml}}{{#hero}}
+<div class="cs-hero">
+  <div class="cs-hero-body">
+    {{#overline}}<p class="overline">{{{overline}}}</p>{{/overline}}
+    <h1>{{{title}}}</h1>
+    <div class="cs-rule"></div>
+    {{#lede}}<p class="cs-lede">{{{lede}}}</p>{{/lede}}
+    {{#cta}}
+    <p class="cs-cta">{{#primary}}<a class="cs-btn" href="{{href}}">{{{text}}}</a>{{/primary}}{{#secondary}} <a class="cs-btn-link" href="{{href}}">{{{text}}}</a>{{/secondary}}</p>
+    {{/cta}}
+  </div>
+  {{#logo}}<div class="cs-hero-art"><img src="{{{src}}}" alt="{{package.name}} logo"></div>{{/logo}}
+</div>
+{{/hero}}{{/yaml}}
+<div class="cs-home">
+  <main id="main" class="cs-home-main">
+{{{index}}}
+  </main>
+{{#sidebar}}
+  <aside class="cs-home-aside">
+{{{.}}}
+  </aside>
+{{/sidebar}}
+</div>
