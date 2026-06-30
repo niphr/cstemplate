@@ -148,7 +148,9 @@ aside {
   code { background: none; padding: 0; color: $cs-navy; }
   a { text-decoration: none; }
   a:hover { color: $cs-coral; }
-  .section { margin-bottom: 2.4rem; }
+  .section { margin-bottom: 2.8rem; }
+  dt { margin-top: 1.4rem; }            // breathing room between each entry
+  dd { margin-top: .15rem; }
   .section > h2 {
     display: flex; align-items: center; gap: .8rem;
     font-size: 1rem; letter-spacing: .1em; text-transform: uppercase;
@@ -200,7 +202,8 @@ aside {
   .cs-family-label {
     font-family: "JetBrains Mono", ui-monospace, monospace;
     font-size: .62rem; letter-spacing: .14em; text-transform: uppercase;
-    color: #bfb6a8;
+    color: #bfb6a8; text-decoration: none;
+    &:hover { color: $cs-coral; }
   }
   a {
     font-family: "Spectral", Georgia, serif;
@@ -363,3 +366,12 @@ aside {
 // so the page-header's underline doubles up. Drop it there only (article and
 // topic pages keep the underline, where it cleanly caps the title block).
 .template-reference-index .page-header { border-bottom: 0; padding-bottom: .25rem; }
+
+// ── full-width list/index pages ──────────────────────────────────────────────
+// The reference index and article index are lists, so they use the full content
+// width like the home (no side rail). Prose pages (articles) and reference topic
+// pages keep their narrower, readable column + "On this page" rail.
+.template-reference-index main.col-md-9,
+.template-article-index main.col-md-9 { flex: 0 0 100%; max-width: 100%; }
+.template-reference-index aside.col-md-3,
+.template-article-index aside.col-md-3 { display: none; }
