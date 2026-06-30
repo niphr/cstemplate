@@ -149,8 +149,11 @@ aside {
   a { text-decoration: none; }
   a:hover { color: $cs-coral; }
   .section { margin-bottom: 2.8rem; }
-  dt { margin-top: 1.4rem; }            // breathing room between each entry
-  dd { margin-top: .15rem; }
+  // clear hierarchy so each entry is easy to scan: bold mono names, lighter desc
+  dt { margin-top: 1.4rem; font-weight: 700; font-size: 1.02rem; }
+  dt code, dt a { font-weight: 700; color: $cs-navy; }
+  dt a:hover, dt a:hover code { color: $cs-coral; }
+  dd { margin-top: .25rem; color: $cs-muted; font-size: .92rem; line-height: 1.5; }
   .section > h2 {
     display: flex; align-items: center; gap: .8rem;
     font-size: 1rem; letter-spacing: .1em; text-transform: uppercase;
