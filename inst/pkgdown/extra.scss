@@ -354,3 +354,8 @@ aside {
 .template-article .page-header .dont-index {
   color: $cs-muted; font-size: .9rem;
 }
+
+// On the reference index, each group header already carries its own hairline,
+// so the page-header's underline doubles up. Drop it there only (article and
+// topic pages keep the underline, where it cleanly caps the title block).
+.template-reference-index .page-header { border-bottom: 0; padding-bottom: .25rem; }
