@@ -9,7 +9,7 @@ template:
   # Fonts are auto-imported from Google by bslib; colours flow into the SCSS.
   bslib:
     primary: "#e0533c"          # coral  — links, accents, active states
-    bg: "#fbfaf7"               # warm off-white page background
+    bg: "#ffffff"               # white page background
     fg: "#1e2c3a"               # navy ink
     base_font: { google: "Source Sans 3" }
     heading_font: { google: "Spectral" }

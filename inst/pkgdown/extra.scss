@@ -11,7 +11,7 @@
 $cs-navy:      #1e2c3a;
 $cs-coral:     #e0533c;
 $cs-coral-dk:  #c8432e;
-$cs-bg:        #fbfaf7;
+$cs-bg:        #ffffff;
 $cs-border:    #ece8e1;
 $cs-muted:     #6a7682;
 $cs-faint:     #9a958c;
@@ -35,7 +35,22 @@ $cs-ink-bg:    #1e2c3a;   // code block background
   padding: .15rem .45rem;
   border-radius: 1rem;
 }
-.navbar { border-bottom: 1px solid $cs-border; }
+// White navbar (override Bootstrap's tinted bg-light) with a hairline divider.
+.navbar { background-color: #fff !important; border-bottom: 1px solid $cs-border; }
+// active / hovered nav links read as coral text, not a grey pill
+.navbar .nav-link.active,
+.navbar .nav-link:hover,
+.navbar .nav-link:focus { background: transparent !important; color: $cs-coral !important; }
+
+// ── breathing room beneath the fixed navbar + an airier vertical rhythm ──────
+// The navbar is position:fixed (~59px); give page content a clear gap below it
+// and let anchor jumps land below the bar.
+html { scroll-padding-top: 4.75rem; }
+body:not(.template-home) main { padding-top: 1.7rem; }
+main > .page-header { padding-bottom: 1.4rem; margin-bottom: 1.9rem; }
+main p, main li { line-height: 1.7; }
+main h2 { margin-top: 2.7rem; }
+main h3 { margin-top: 2rem; }
 
 // ── headings & lede ─────────────────────────────────────────────────────────
 main h1, main h2, main h3 { letter-spacing: -.01em; }
@@ -125,6 +140,11 @@ aside {
 
 // ── reference index ─────────────────────────────────────────────────────────
 .template-reference-index {
+  // function names read as clean mono text, not dense beige chips
+  code { background: none; padding: 0; color: $cs-navy; }
+  a { text-decoration: none; }
+  a:hover { color: $cs-coral; }
+  .section { margin-bottom: 2.4rem; }
   .section > h2 {
     display: flex; align-items: center; gap: .8rem;
     font-size: 1rem; letter-spacing: .1em; text-transform: uppercase;
@@ -196,7 +216,7 @@ aside {
 .cs-hero {
   display: grid; grid-template-columns: 1fr auto; gap: 2.2rem; align-items: center;
   border: 1px solid $cs-border; border-radius: .9rem; background: #fff;
-  padding: 2.4rem 2.6rem; margin: .25rem 0 2.4rem;
+  padding: 2.4rem 2.6rem; margin: 1.5rem 0 2.4rem;
 }
 .cs-hero-body { min-width: 0; }
 .cs-hero h1 {
