@@ -2,7 +2,9 @@ on:
   workflow_call:
     inputs:
       max-loc:
-        description: The maximum number of code lines one R/*.R file may hold.
+        description: >
+          The maximum number of code lines one code file in R/ may hold. A
+          code file is one R collates: .R, .r, .S, .s or .q.
         type: number
         default: 1000
       loc-allowlist:
@@ -77,7 +79,7 @@ jobs:
 
       # org::loc_per_file() is the single implementation of the count. Do not
       # reimplement it here.
-      - name: Check the code lines in every R/*.R file
+      - name: Check the code lines in every code file in R/
         env:
           ORG_LIB: ${{ runner.temp }}/loc-limit-library
           MAX_LOC: ${{ inputs.max-loc }}
@@ -95,10 +97,42 @@ jobs:
             )
           }
 
-          # A glob that matches nothing must fail, not pass as compliance.
-          files <- sort(Sys.glob("R/*.R"))
+          # R collates every file in R/ whose extension is in
+          # tools:::.make_file_exts("code"). Sys.glob("R/*.R") saw one of the
+          # five, so a file named `.r` was invisible to this gate.
+          code_exts <- c("R", "r", "S", "s", "q")
+
+          # Fail loudly if a future R adds a sixth, rather than check fewer
+          # files than R loads.
+          if (exists(".make_file_exts", envir = asNamespace("tools"), inherits = FALSE)) {
+            r_exts <- tools:::.make_file_exts("code")
+            if (!setequal(r_exts, code_exts)) {
+              stop(
+                "R collates these code extensions: ", paste(r_exts, collapse = " "),
+                "\nThis gate checks: ", paste(code_exts, collapse = " "),
+                "\nUpdate code_exts in the workflow.",
+                call. = FALSE
+              )
+            }
+          }
+
+          # grep() over the listing, never a glob. Sys.glob() hands the match
+          # to the OS. A case-insensitive filesystem then matches foo.r
+          # against "R/*.R", so a union of five globs counts one file five
+          # times. list.files() returns each entry once and grep() decides in
+          # R, case-sensitively. This mirrors tools::list_files_with_exts().
+          pattern <- paste0("\\.(", paste(code_exts, collapse = "|"), ")$")
+          files <- list.files("R", all.files = FALSE)
+          files <- sort(file.path("R", grep(pattern, files, value = TRUE)))
+
+          # A selection that matches nothing must fail, not pass as compliance.
           if (length(files) == 0) {
-            stop("Found no R/*.R file, so the limit checked nothing.", call. = FALSE)
+            stop(
+              "Found no code file in R/ with an extension R collates (",
+              paste0(".", code_exts, collapse = ", "),
+              "), so the limit checked nothing.",
+              call. = FALSE
+            )
           }
 
           allowlist <- strsplit(Sys.getenv("LOC_ALLOWLIST"), "\n", fixed = TRUE)[[1]]
