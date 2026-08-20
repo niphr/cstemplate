@@ -14,11 +14,26 @@ shipped text rather than a copy that can drift.
 | `mutations2.py` | 10 mutations of that step, each red in at least one fixture |
 | `harness_loc.py` | 36 fixtures for the code-line gate |
 | `mutations_loc.py` | 13 mutations of the gate |
-| `casefold.R` | proves the file selection does not depend on filesystem case-folding |
-| `sortcheck.R` | proves `list.files()` returns one directory's listing in collation order |
-| `measure_loc.R` | counts what the gate sees, per package |
+| `casefold.R` | 4 checks that the selection does not depend on filesystem case folding |
+| `sortcheck.R` | 5 checks on what `sort()` does, and on whether any decision reads the order |
+| `measure_loc.R` | runs the gate against every package it guards, and reports the verdict |
 | `p4check_repinned2.py` | asserts all 13 callers are wired and pinned |
 | `probepkg/` | a minimal package with sentinel tokens, the input to fixture F8 |
+
+**Every one of these extracts the step from the YAML and runs it.** None holds a copy of the
+selection. `casefold.R`, `sortcheck.R` and `measure_loc.R` reimplemented it until 2026-08-20,
+which let them drift from the shipped step in a way the two Python harnesses never could.
+
+Three rules the R scripts follow, and each was a bug first:
+
+- **Read the block scalar with `cat()`, never `writeLines()`.** The YAML already ends the block
+  in a newline, so `writeLines()` adds a second one and the extracted text stops matching what
+  Python extracts.
+- **Pass the allowlist with `Sys.setenv()`, never `system2(env=)`.** An allowlist holds one path
+  per line, `system2()` builds a shell prefix, and a newline inside a value breaks the command.
+- **Measure the shipped body before any shape check.** A step that no longer holds the block a
+  script wants to swap is the case that script exists to catch. Stopping above the measurement
+  turns the finding into a crash that names the wrong thing.
 
 ## Run them
 
@@ -54,7 +69,18 @@ python3 dev/loc-gate/harness2.py
 python3 dev/loc-gate/mutations2.py
 python3 dev/loc-gate/harness_loc.py
 python3 dev/loc-gate/mutations_loc.py
+python3 dev/loc-gate/p4check_repinned2.py
+Rscript  dev/loc-gate/casefold.R
+Rscript  dev/loc-gate/sortcheck.R
+Rscript  dev/loc-gate/measure_loc.R
 ```
+
+`casefold.R` and `sortcheck.R` exit non-zero on a failed check, so they run in a script.
+`measure_loc.R` reports and always exits zero: two rows read `FAIL`, because `cstemplate` and
+`rwtemplate` carry no `R/` directory. Neither calls the workflow.
+
+**`p4check_repinned2.py` holds the two pinned SHAs.** Update both constants whenever the
+callers are re-pinned, or the check passes against the version it was written for.
 
 ## Why each step is shaped the way it is
 
@@ -108,7 +134,12 @@ over-limit file through. Fixture `L19` pins it.
 work, because it interleaves three directory listings that arrive concatenated. Nothing
 downstream reads the order: `setdiff(allowlist, files)` and `names(counts) %in% allowlist` both
 answer the same under either ordering, measured. Only the order of names inside an error message
-changes. Recorded as unpinned rather than given a decorative assertion.
+changes, so no fixture verdict can move.
+
+`sortcheck.R` does catch the removal, from a different angle. It reads the order out of the
+step's own error message, with `max-loc` set to `0` so every file is listed. It then checks that
+the order is the sorted order. Remove `files <- sort(files)` from the workflow and that check
+reports `FALSE` and exits 1. So the gap is in `mutations_loc.py` alone, not in the suite.
 
 **The step has no canary on the OS subdirectory names**, unlike the one on the extension list.
 `.OStype()` reports the runner's own OS only, so on `ubuntu-latest` such a canary can report

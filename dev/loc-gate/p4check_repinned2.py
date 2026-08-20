@@ -1,6 +1,6 @@
 import glob, yaml, sys
-CS = "niphr/cstemplate/.github/workflows/r-package.yml@8f8f2ad878710d6d9d3d5ee91ec7a566f8e34683"
-RW = "raubreywhite/rwtemplate/.github/workflows/r-package.yml@bf26ed8e6e40309fc62b4179479c5475530df9f6"
+CS = "niphr/cstemplate/.github/workflows/r-package.yml@9c4f563e066e186f47730d329a644ac380e03be2"
+RW = "raubreywhite/rwtemplate/.github/workflows/r-package.yml@8173d74274ca91f7eda03593039964e2fdfa1473"
 fs = sorted(glob.glob('/home/raw996/niphr/cs*/.github/workflows/check-and-pkgdown.yml')
           + glob.glob('/home/raw996/wb/*/.github/workflows/check-and-pkgdown.yml'))
 fs = [f for f in fs if '/cstemplate/' not in f and '/rwtemplate/' not in f and '/niphr/cs/' not in f]
