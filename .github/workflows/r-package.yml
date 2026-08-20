@@ -284,7 +284,12 @@ jobs:
 
           # Fail if pkgdown stopped generating the page, so this step cannot
           # pass silently once it is no longer doing anything.
-          test -f docs/CLAUDE.html
+          if [ ! -f docs/CLAUDE.html ]; then
+            echo "docs/CLAUDE.html is absent. pkgdown stopped generating it, so this"
+            echo "step is no longer doing what it was added for. Check whether the"
+            echo "other four names below are still the right ones."
+            exit 1
+          fi
           # Only one caller publishes a PROJECT.md, so PROJECT stays optional.
           rm -f docs/CLAUDE.html docs/CLAUDE.md docs/PROJECT.html docs/PROJECT.md
 

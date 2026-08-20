@@ -18,7 +18,7 @@ spec.loader.exec_module(h)
 BODY = h.extract_step()
 
 RM_LINE = "rm -f docs/CLAUDE.html docs/CLAUDE.md docs/PROJECT.html docs/PROJECT.md\n"
-TEST_LINE = "test -f docs/CLAUDE.html\n"
+TEST_LINE = 'if [ ! -f docs/CLAUDE.html ]; then\n  echo "docs/CLAUDE.html is absent. pkgdown stopped generating it, so this"\n  echo "step is no longer doing what it was added for. Check whether the"\n  echo "other four names below are still the right ones."\n  exit 1\nfi\n'
 SITEMAP_ASSERT = """\
 if grep -qE 'CLAUDE\\.|PROJECT\\.' docs/sitemap.xml; then
   echo "docs/sitemap.xml still lists an agent instructions page:"
