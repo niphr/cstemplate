@@ -1,0 +1,244 @@
+on:
+  workflow_call:
+    inputs:
+      max-loc:
+        description: The maximum number of code lines one R/*.R file may hold.
+        type: number
+        default: 1000
+      loc-allowlist:
+        description: >
+          Repo-relative paths the limit does not apply to, one per line.
+          Every entry MUST name a file that exists in R/.
+        type: string
+        default: ""
+      extra-packages:
+        description: Extra packages for setup-r-dependencies to install before R CMD check.
+        type: string
+        default: any::rcmdcheck
+      cran:
+        description: >
+          The CRAN mirror to build against. The empty default leaves the
+          repository that setup-r picks.
+        type: string
+        default: ""
+      use-public-rspm:
+        description: >
+          Use the public Posit package manager. It takes precedence over cran,
+          so a non-empty cran turns it off.
+        type: boolean
+        default: true
+
+name: R package
+
+jobs:
+  loc-limit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned, not release. This gate must not change its answer because R
+      # released a new version.
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.6.1'
+          use-public-rspm: true
+
+      # Pinned by full commit SHA, into a temporary library. A branch reference
+      # would let one new org commit change every caller's gate, with no diff
+      # in any caller.
+      - name: Install org
+        env:
+          ORG_LIB: ${{ runner.temp }}/loc-limit-library
+        shell: Rscript {0}
+        run: |
+          lib <- Sys.getenv("ORG_LIB")
+          dir.create(lib, recursive = TRUE, showWarnings = FALSE)
+          install.packages(
+            "pak",
+            lib = lib,
+            repos = sprintf(
+              "https://r-lib.github.io/p/pak/stable/%s/%s/%s",
+              .Platform$pkgType,
+              R.version$os,
+              R.version$arch
+            )
+          )
+          .libPaths(c(lib, .libPaths()))
+          pak::pak(
+            "raubreywhite/org@33f76369f6eceb9fcb1eb7734500e52450e27384",
+            lib = lib,
+            ask = FALSE
+          )
+
+      # org::loc_per_file() is the single implementation of the count. Do not
+      # reimplement it here.
+      - name: Check the code lines in every R/*.R file
+        env:
+          ORG_LIB: ${{ runner.temp }}/loc-limit-library
+          MAX_LOC: ${{ inputs.max-loc }}
+          LOC_ALLOWLIST: ${{ inputs.loc-allowlist }}
+        shell: Rscript {0}
+        run: |
+          .libPaths(c(Sys.getenv("ORG_LIB"), .libPaths()))
+
+          max_loc <- suppressWarnings(as.numeric(Sys.getenv("MAX_LOC")))
+          if (is.na(max_loc)) {
+            stop(
+              "max-loc must be one number. It arrived as: ",
+              Sys.getenv("MAX_LOC"),
+              call. = FALSE
+            )
+          }
+
+          # A glob that matches nothing must fail, not pass as compliance.
+          files <- sort(Sys.glob("R/*.R"))
+          if (length(files) == 0) {
+            stop("Found no R/*.R file, so the limit checked nothing.", call. = FALSE)
+          }
+
+          allowlist <- strsplit(Sys.getenv("LOC_ALLOWLIST"), "\n", fixed = TRUE)[[1]]
+          allowlist <- trimws(allowlist)
+          allowlist <- allowlist[nzchar(allowlist)]
+
+          # A stale entry that silently does nothing is how an allowlist
+          # outlives its reason.
+          stale <- setdiff(allowlist, files)
+          if (length(stale) > 0) {
+            stop(
+              "These loc-allowlist entries name no file in R/:\n",
+              paste0("  ", stale, collapse = "\n"),
+              "\nRemove them from loc-allowlist.",
+              call. = FALSE
+            )
+          }
+
+          counts <- org::loc_per_file(files)
+          over <- counts[counts > max_loc & !names(counts) %in% allowlist]
+          if (length(over) > 0) {
+            stop(
+              "These files hold more than ", max_loc, " code lines:\n",
+              paste0("  ", names(over), " (", over, ")", collapse = "\n"),
+              "\nSplit them, or add them to loc-allowlist.",
+              call. = FALSE
+            )
+          }
+
+          cat(
+            "Checked ", length(files), " files against a limit of ", max_loc,
+            ". The maximum is ", max(counts), ".\n",
+            sep = ""
+          )
+
+  R-CMD-check:
+    needs: loc-limit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Two mutually exclusive steps, because a with: key cannot be omitted by
+      # an expression. The empty cran default leaves setup-r alone.
+      - uses: r-lib/actions/setup-r@v2
+        if: inputs.cran == ''
+        with:
+          r-version: release
+          use-public-rspm: ${{ inputs.use-public-rspm }}
+
+      - uses: r-lib/actions/setup-r@v2
+        if: inputs.cran != ''
+        with:
+          r-version: release
+          use-public-rspm: false
+          cran: ${{ inputs.cran }}
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: ${{ inputs.extra-packages }}
+          needs: check
+
+      - uses: r-lib/actions/check-r-package@v2
+        with:
+          upload-snapshots: true
+          args: 'c("--no-manual", "--as-cran")'
+
+  pkgdown:
+    needs: [loc-limit, R-CMD-check]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        if: inputs.cran == ''
+        with:
+          r-version: release
+          use-public-rspm: ${{ inputs.use-public-rspm }}
+
+      - uses: r-lib/actions/setup-r@v2
+        if: inputs.cran != ''
+        with:
+          r-version: release
+          use-public-rspm: false
+          cran: ${{ inputs.cran }}
+
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::pkgdown, any::devtools
+          needs: website
+
+      - name: Install package
+        run: devtools::install()
+        shell: Rscript {0}
+
+      - name: Build site
+        run: pkgdown::build_site_github_pages()
+        shell: Rscript {0}
+
+      # pkgdown:::package_mds() globs every root *.md and excludes only a fixed
+      # list (README, LICENSE, NEWS, cran-comments, the issue templates). There
+      # is no setting for it, so CLAUDE.md renders and publishes as a page.
+      #
+      # PROJECT.md comes first, and CLAUDE.md last, on purpose. Under set -e a
+      # `! grep` never aborts the script, so that assertion only bites as the
+      # last line, where its status becomes the step's status.
+      - name: Keep agent instructions off the published site
+        run: |
+          set -euo pipefail
+          # Only one caller publishes a PROJECT.md, so this half is conditional.
+          if [ -f docs/PROJECT.html ]; then
+            rm docs/PROJECT.html
+            sed -i '\|<url><loc>[^<]*/PROJECT\.html</loc></url>|d' docs/sitemap.xml
+            test ! -f docs/PROJECT.html
+            if grep -q 'PROJECT\.html' docs/sitemap.xml; then
+              echo "PROJECT.html is still listed in docs/sitemap.xml"
+              exit 1
+            fi
+          fi
+          # Fail if pkgdown stopped generating it, so this step cannot pass
+          # silently once it is no longer doing anything.
+          test -f docs/CLAUDE.html
+          rm docs/CLAUDE.html
+          sed -i '\|<url><loc>[^<]*/CLAUDE\.html</loc></url>|d' docs/sitemap.xml
+          test ! -f docs/CLAUDE.html
+          ! grep -q 'CLAUDE\.html' docs/sitemap.xml
+
+      - name: Deploy to GitHub Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
