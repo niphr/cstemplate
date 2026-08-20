@@ -1,0 +1,9 @@
+Package: probepkg
+Title: A Probe Package For Pkgdown Output Enumeration
+Version: 2026.8.20
+Authors@R: person("Richard Aubrey", "White", email = "hello@rwhite.no", role = c("aut", "cre", "cph"))
+Description: A throwaway package used to enumerate every file pkgdown writes.
+License: MIT + file LICENSE
+Encoding: UTF-8
+RoxygenNote: 7.3.2
+URL: https://example.com/probepkg
