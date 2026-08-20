@@ -210,31 +210,94 @@ jobs:
 
       # pkgdown:::package_mds() globs every root *.md and excludes only a fixed
       # list (README, LICENSE, NEWS, cran-comments, the issue templates). There
-      # is no setting for it, so CLAUDE.md renders and publishes as a page.
+      # is no setting for it, so CLAUDE.md renders to docs/CLAUDE.html.
       #
-      # PROJECT.md comes first, and CLAUDE.md last, on purpose. Under set -e a
-      # `! grep` never aborts the script, so that assertion only bites as the
-      # last line, where its status becomes the step's status.
+      # pkgdown then writes that page text into two more files.
+      # build_llm_docs() converts every *.html under docs/ to a *.md beside it,
+      # which is where docs/CLAUDE.md comes from. build_search() writes the
+      # text of every page into docs/search.json. The deploy step ships the
+      # whole docs/ directory, so all three files must go.
+      #
+      # Under `set -e`, a pipeline that starts with `!` never aborts the script.
+      # So a `! grep` assertion is inert unless it is the step's last command.
+      # Every assertion below uses `if ...; then exit 1; fi` instead, which is
+      # live wherever it sits.
       - name: Keep agent instructions off the published site
         run: |
           set -euo pipefail
-          # Only one caller publishes a PROJECT.md, so this half is conditional.
-          if [ -f docs/PROJECT.html ]; then
-            rm docs/PROJECT.html
-            sed -i '\|<url><loc>[^<]*/PROJECT\.html</loc></url>|d' docs/sitemap.xml
-            test ! -f docs/PROJECT.html
-            if grep -q 'PROJECT\.html' docs/sitemap.xml; then
-              echo "PROJECT.html is still listed in docs/sitemap.xml"
-              exit 1
-            fi
-          fi
-          # Fail if pkgdown stopped generating it, so this step cannot pass
-          # silently once it is no longer doing anything.
+
+          # Fail if pkgdown stopped generating the page, so this step cannot
+          # pass silently once it is no longer doing anything.
           test -f docs/CLAUDE.html
-          rm docs/CLAUDE.html
-          sed -i '\|<url><loc>[^<]*/CLAUDE\.html</loc></url>|d' docs/sitemap.xml
-          test ! -f docs/CLAUDE.html
-          ! grep -q 'CLAUDE\.html' docs/sitemap.xml
+          # Only one caller publishes a PROJECT.md, so PROJECT stays optional.
+          rm -f docs/CLAUDE.html docs/CLAUDE.md docs/PROJECT.html docs/PROJECT.md
+
+          sed -i \
+            -e '\|<url><loc>[^<]*/CLAUDE\.[^<]*</loc></url>|d' \
+            -e '\|<url><loc>[^<]*/PROJECT\.[^<]*</loc></url>|d' \
+            docs/sitemap.xml
+
+          # Match on the `path` field, never on the text. A page that survives
+          # may name CLAUDE.md for a good reason, and the cs9 changelog does.
+          # A site with search turned off has no docs/search.json, which is not
+          # an error. Any parse failure exits non-zero, and this is a plain
+          # assignment, so `set -e` fails the step. A malformed file cannot
+          # pass quietly.
+          agent_indexed=$(python3 - <<'PY'
+          import json
+          import os
+          import re
+          import sys
+
+          P = "docs/search.json"
+          AGENT = re.compile(r"^(CLAUDE|PROJECT)\.")
+
+
+          def load():
+              with open(P) as fh:
+                  d = json.load(fh)
+              if not isinstance(d, list):
+                  sys.exit(P + " is not a JSON array. pkgdown changed its format.")
+              return d
+
+
+          def is_agent(entry):
+              if not isinstance(entry, dict):
+                  sys.exit(P + " holds a non-object entry. pkgdown changed its format.")
+              url = str(entry.get("path") or "").split("?")[0].split("#")[0]
+              return bool(AGENT.match(url.rsplit("/", 1)[-1]))
+
+
+          if os.path.exists(P):
+              kept = [e for e in load() if not is_agent(e)]
+              with open(P, "w") as fh:
+                  json.dump(kept, fh)
+              # Re-read from disk, so the check reports on the file that ships.
+              for entry in load():
+                  if is_agent(entry):
+                      print(entry.get("path"))
+          PY
+          )
+
+          if grep -qE 'CLAUDE\.|PROJECT\.' docs/sitemap.xml; then
+            echo "docs/sitemap.xml still lists an agent instructions page:"
+            grep -nE 'CLAUDE\.|PROJECT\.' docs/sitemap.xml
+            exit 1
+          fi
+
+          if [ -n "$agent_indexed" ]; then
+            echo "docs/search.json still indexes an agent instructions page:"
+            echo "$agent_indexed"
+            exit 1
+          fi
+
+          # This assertion catches any further extension that pkgdown emits.
+          left=$(find docs \( -name 'CLAUDE.*' -o -name 'PROJECT.*' \) -print)
+          if [ -n "$left" ]; then
+            echo "These agent instruction files survive under docs/:"
+            echo "$left"
+            exit 1
+          fi
 
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
