@@ -6,7 +6,9 @@ import io
 import os
 import sys
 
-spec = importlib.util.spec_from_file_location("hl", "/tmp/phase6b/harness_loc.py")
+HARNESS = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                       "harness_loc.py")
+spec = importlib.util.spec_from_file_location("hl", HARNESS)
 h = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(h)
 
@@ -25,12 +27,25 @@ CANARY = '''if (exists(".make_file_exts", envir = asNamespace("tools"), inherits
 }
 '''
 EXTS_LINE = 'code_exts <- c("R", "r", "S", "s", "q")\n'
-SELECT = '''pattern <- paste0("\\\\.(", paste(code_exts, collapse = "|"), ")$")
-files <- list.files("R", all.files = FALSE)
+SELECT = '''files <- character()
+for (d in c("R", "R/unix", "R/windows")) {
+  found <- list.files(d, all.files = FALSE)
+  files <- c(files, file.path(d, grep(pattern, found, value = TRUE)))
+}
+files <- sort(files)
+'''
+DIRS_LINE = 'for (d in c("R", "R/unix", "R/windows")) {\n'
+GATHER = 'files <- c(files, file.path(d, grep(pattern, found, value = TRUE)))\n'
+
+# The selection as it stood before it covered the OS subdirectories. N9 puts
+# it back, which is the revert this block exists to keep red.
+TOPLEVEL_ONLY = '''files <- list.files("R", all.files = FALSE)
 files <- sort(file.path("R", grep(pattern, files, value = TRUE)))
 '''
 
-for nm, frag in [("CANARY", CANARY), ("EXTS_LINE", EXTS_LINE), ("SELECT", SELECT)]:
+for nm, frag in [("CANARY", CANARY), ("EXTS_LINE", EXTS_LINE),
+                 ("SELECT", SELECT), ("DIRS_LINE", DIRS_LINE),
+                 ("GATHER", GATHER)]:
     assert frag in BODY, "%s not found in the step body" % nm
 
 MUTATIONS = [
@@ -43,16 +58,31 @@ MUTATIONS = [
     ("N4 drop \"r\" AND remove the canary",
      BODY.replace(EXTS_LINE, 'code_exts <- c("R", "S", "s", "q")\n').replace(CANARY, "")),
     ("N5 match the extension case-insensitively",
-     BODY.replace('grep(pattern, files, value = TRUE)',
-                  'grep(pattern, files, value = TRUE, ignore.case = TRUE)')),
+     BODY.replace('grep(pattern, found, value = TRUE)',
+                  'grep(pattern, found, value = TRUE, ignore.case = TRUE)')),
     ("N6 list.files(all.files = TRUE), so dotfiles enter",
-     BODY.replace('list.files("R", all.files = FALSE)', 'list.files("R", all.files = TRUE)')),
-    ("N7 return bare basenames instead of R/<name>",
-     BODY.replace('files <- sort(file.path("R", grep(pattern, files, value = TRUE)))',
-                  'files <- sort(grep(pattern, files, value = TRUE))')),
+     BODY.replace('list.files(d, all.files = FALSE)',
+                  'list.files(d, all.files = TRUE)')),
+    ("N7 return bare basenames instead of the path",
+     BODY.replace(GATHER,
+                  'files <- c(files, grep(pattern, found, value = TRUE))\n')),
     ("N8 remove the sort()",
-     BODY.replace('files <- sort(file.path("R", grep(pattern, files, value = TRUE)))',
-                  'files <- file.path("R", grep(pattern, files, value = TRUE))')),
+     BODY.replace('files <- sort(files)\n', '')),
+    # ---- the OS subdirectory coverage ---------------------------------------
+    ("N9 revert to R/ only, the selection before this coverage",
+     BODY.replace(SELECT, TOPLEVEL_ONLY)),
+    ("N10 check the runner's OS subdirectory only",
+     BODY.replace(DIRS_LINE,
+                  'for (d in c("R", file.path("R", tools:::.OStype()))) {\n')),
+    # N10 resolves to "unix" on this runner, so it cannot show that R/unix/ is
+    # covered. N11 drops the other side, and the two red sets are disjoint.
+    ("N11 drop R/unix/, keeping R/windows/",
+     BODY.replace(DIRS_LINE, 'for (d in c("R", "R/windows")) {\n')),
+    ("N12 check every subdirectory of R/, not the two R collates",
+     BODY.replace(DIRS_LINE, 'for (d in list.dirs("R", recursive = TRUE)) {\n')),
+    ("N13 recurse below the OS subdirectory",
+     BODY.replace('list.files(d, all.files = FALSE)',
+                  'list.files(d, all.files = FALSE, recursive = TRUE)')),
 ]
 
 
@@ -60,8 +90,9 @@ def verdicts(body):
     out = {}
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        for name, files, max_loc, allow, want in h.FIXTURES:
-            d = h.build(os.path.join("mut", name), files)
+        for name, files, max_loc, allow, want, extra in map(h.unpack,
+                                                            h.FIXTURES):
+            d = h.build(os.path.join("mut", name), files, extra)
             p = h.run(body, d, max_loc, allow)
             out[name] = h.check(want, p)[0]
     return out

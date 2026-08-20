@@ -12,10 +12,10 @@ shipped text rather than a copy that can drift.
 |---|---|
 | `harness2.py` | 15 fixtures for the step that keeps agent instructions off the site |
 | `mutations2.py` | 10 mutations of that step, each red in at least one fixture |
-| `harness_loc.py` | 19 fixtures for the code-line gate |
-| `mutations_loc.py` | 8 mutations of the gate |
+| `harness_loc.py` | 36 fixtures for the code-line gate |
+| `mutations_loc.py` | 13 mutations of the gate |
 | `casefold.R` | proves the file selection does not depend on filesystem case-folding |
-| `sortcheck.R` | proves `list.files()` already returns collation order |
+| `sortcheck.R` | proves `list.files()` returns one directory's listing in collation order |
 | `measure_loc.R` | counts what the gate sees, per package |
 | `p4check_repinned2.py` | asserts all 13 callers are wired and pinned |
 | `probepkg/` | a minimal package with sentinel tokens, the input to fixture F8 |
@@ -37,6 +37,15 @@ RSTUDIO_PANDOC=/opt/quarto/bin/tools Rscript -e '
 `pandoc document conversion failed with error 23` and stops before writing any `.md` sibling. It
 reads as a pkgdown bug rather than a missing dependency, and it costs an hour to work out. The
 pandoc bundled with quarto is new enough.
+
+The code-line harnesses call `org::loc_per_file()`, so they need `org` at `/tmp/loclib`, built
+from the SHA the workflow pins. Never install it into your own library:
+
+```bash
+mkdir -p /tmp/loclib /tmp/orgsrc
+git -C ~/wb/org archive 33f76369f6eceb9fcb1eb7734500e52450e27384 | tar -x -C /tmp/orgsrc
+R CMD INSTALL -l /tmp/loclib /tmp/orgsrc
+```
 
 Then:
 
@@ -70,15 +79,43 @@ macOS. `casefold.R` measures that.
 A canary compares the step's extension list against R's on every run, so a sixth extension in a
 future R fails the job loudly rather than narrowing the gate in silence.
 
-## Known gaps
+**The gate reads `R/`, `R/unix/` and `R/windows/`, and no other directory.** R collates an OS
+subdirectory of `R/` as package code, so a glob of `R/` alone cannot see a file there.
 
-**The gate does not look in `R/unix/` or `R/windows/`.** R collates those subdirectories. No
-package in the fleet has one, so the invariant holds today. A package that adds one reopens the
-hole, and closing it needs its own fixtures.
+The choice to read both, rather than the runner's own OS, comes from R's behaviour rather than
+from the manual. Three measurements settled it:
+
+1. `R CMD INSTALL` on Linux collates `R/unix/u.R` and not `R/windows/w.R`. Verified by installing
+   a probe package: `unix_fn` exists in the namespace, `windows_fn` does not.
+2. `R CMD check` on the same machine reads `R/windows/w.R`. A syntax error there fails
+   `checking R files for syntax errors`. `tools:::.check_package_code_syntax()` passes
+   `OS_subdirs = c("unix", "windows")`, where `.install_package_code_files()` takes the
+   `.OStype()` default.
+3. `R/helpers/h.R` is collated by neither. Verified the same way: `helper_fn` is absent.
+
+So R's own precedent for a check is both directories, and this gate is a check. Every job in the
+workflow runs on `ubuntu-latest`, so a runner-OS gate never looks in `R/windows/` on any run. It
+also calls a `loc-allowlist` entry for a file there stale, which leaves that file no way to be
+exempted. Fixture `L26` pins that second surface, and mutation `N10` keeps it red.
+
+## Known gaps
 
 **The gate counts `R/_helper.R`, which R does not collate**, because `list_files_with_type()`
 drops any basename not starting with an alphanumeric. Stricter than R, so it cannot let an
 over-limit file through. Fixture `L19` pins it.
 
-**`mutations_loc.py` reports `N8` as unproven.** It removes a `sort()` that cannot be made to
-matter. Recorded as unpinned rather than given a decorative assertion.
+**`mutations_loc.py` reports `N8` as unproven.** It removes the `sort()`. That call now does real
+work, because it interleaves three directory listings that arrive concatenated. Nothing
+downstream reads the order: `setdiff(allowlist, files)` and `names(counts) %in% allowlist` both
+answer the same under either ordering, measured. Only the order of names inside an error message
+changes. Recorded as unpinned rather than given a decorative assertion.
+
+**The step has no canary on the OS subdirectory names**, unlike the one on the extension list.
+`.OStype()` reports the runner's own OS only, so on `ubuntu-latest` such a canary can report
+`unix` and nothing else. It cannot fire for the case it exists for: a future R that collates a
+third subdirectory name. A check that cannot go red was left out.
+
+**The step has no `dir.exists()` guard on the OS subdirectories.** `list.files()` returns
+`character(0)` for a path that is absent, and for a path that is a plain file, with no warning in
+either case. A guard there changed no fixture verdict, so it was removed rather than kept as a
+line the suite cannot defend.

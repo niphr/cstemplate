@@ -3,14 +3,16 @@ on:
     inputs:
       max-loc:
         description: >
-          The maximum number of code lines one code file in R/ may hold. A
-          code file is one R collates: .R, .r, .S, .s or .q.
+          The maximum number of code lines one code file may hold. A code
+          file is one R collates: .R, .r, .S, .s or .q, in R/, R/unix/ or
+          R/windows/.
         type: number
         default: 1000
       loc-allowlist:
         description: >
           Repo-relative paths the limit does not apply to, one per line.
-          Every entry MUST name a file that exists in R/.
+          Every entry MUST name a code file the gate checks, so one in R/,
+          R/unix/ or R/windows/.
         type: string
         default: ""
       extra-packages:
@@ -122,8 +124,28 @@ jobs:
           # times. list.files() returns each entry once and grep() decides in
           # R, case-sensitively. This mirrors tools::list_files_with_exts().
           pattern <- paste0("\\.(", paste(code_exts, collapse = "|"), ")$")
-          files <- list.files("R", all.files = FALSE)
-          files <- sort(file.path("R", grep(pattern, files, value = TRUE)))
+
+          # R also collates an OS subdirectory of R/, so a file there is
+          # package code that no listing of R/ alone can see.
+          #
+          # Check both, not the runner's OS alone. R CMD INSTALL collates the
+          # runner's subdirectory only, but R CMD check reads both on either
+          # platform: tools:::.check_package_code_syntax() passes
+          # OS_subdirs = c("unix", "windows"). Every job here runs on
+          # ubuntu-latest, so a runner-OS gate never looks in R/windows/. It
+          # also rejects a loc-allowlist entry for a file there, calling it
+          # stale, which leaves that file no way to be exempted.
+          #
+          # R collates these three directories and no others. R/helpers/ is
+          # not package code, so this loop must not recurse. list.files()
+          # returns nothing for a directory that does not exist, so a package
+          # without R/unix/ needs no guard here.
+          files <- character()
+          for (d in c("R", "R/unix", "R/windows")) {
+            found <- list.files(d, all.files = FALSE)
+            files <- c(files, file.path(d, grep(pattern, found, value = TRUE)))
+          }
+          files <- sort(files)
 
           # A selection that matches nothing must fail, not pass as compliance.
           if (length(files) == 0) {
