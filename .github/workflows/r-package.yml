@@ -222,10 +222,14 @@ jobs:
           extra-packages: ${{ inputs.extra-packages }}
           needs: check
 
+      # error-on defaults to "warning", which is how two packages shipped their
+      # .github directory for as long as it existed: the note was reported on
+      # every run and nothing ever failed, so nobody read it.
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true
           args: 'c("--no-manual", "--as-cran")'
+          error-on: '"note"'
 
   pkgdown:
     needs: [loc-limit, R-CMD-check]
