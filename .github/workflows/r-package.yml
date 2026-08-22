@@ -198,6 +198,10 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      # Without this, testthat's skip_on_cran() skips in CI as if the run were
+      # on CRAN, and every opt-in test a package gates behind it never runs.
+      # batchit's seam tests are the measured case.
+      NOT_CRAN: "true"
 
     steps:
       - uses: actions/checkout@v4
