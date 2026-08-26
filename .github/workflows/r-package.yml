@@ -405,7 +405,10 @@ jobs:
             )
           }
 
-          key <- paste0(found$file, ":", found$linter)
+          # recycle0 = TRUE, or paste0() returns ":" for a package with no
+          # lints, and a length-1 key indexes the empty data frame into one row
+          # of NA. The gate then fails on exactly the packages that are clean.
+          key <- paste0(found$file, ":", found$linter, recycle0 = TRUE)
           unused <- setdiff(allowlist, key)
           if (length(unused) > 0) {
             stop(
