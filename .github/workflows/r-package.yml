@@ -333,7 +333,6 @@ jobs:
             vector_logic_linter = lintr::vector_logic_linter(),
             T_and_F_symbol_linter = lintr::T_and_F_symbol_linter(),
             condition_call_linter = lintr::condition_call_linter(),
-            nonportable_path_linter = lintr::nonportable_path_linter(),
             # The house style is an explicit return(). org is written that way
             # and most of the fleet is not, so this linter is what makes them
             # agree.
