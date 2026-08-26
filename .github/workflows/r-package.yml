@@ -15,6 +15,30 @@ on:
           R/unix/ or R/windows/.
         type: string
         default: ""
+      max-cyclocomp:
+        description: >
+          The maximum cyclomatic complexity one function may hold. 15 is
+          lintr's own default.
+        type: number
+        default: 15
+      lint-allowlist:
+        description: >
+          Lints this gate does not apply, one per line. Write each one as
+          <repo-relative path>:<linter name>, for example R/plan.R:seq_linter.
+          Every entry MUST name a code file the gate checks, and MUST suppress
+          at least one lint, so an entry cannot outlive its reason.
+        type: string
+        default: ""
+      lintr-version:
+        description: >
+          The exact lintr version the gate installs. A lintr release changes
+          what the linters flag, so the gate pins it and asserts it.
+        type: string
+        default: "3.4.0"
+      cyclocomp-version:
+        description: The exact cyclocomp version the gate installs.
+        type: string
+        default: "1.1.2"
       extra-packages:
         description: Extra packages for setup-r-dependencies to install before R CMD check.
         type: string
@@ -35,12 +59,18 @@ on:
 name: R package
 
 jobs:
-  loc-limit:
+  static-checks:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      # One library for both gates. Two libraries could load two different
+      # trees, and then the two checks would not describe the same package.
+      GATE_LIB: ${{ runner.temp }}/static-checks-library
+      # The one file list. Both gates read this file, so the code-line limit
+      # and the linter cannot check different files.
+      CODE_FILES: ${{ runner.temp }}/code-files.txt
 
     steps:
       - uses: actions/checkout@v4
@@ -52,15 +82,17 @@ jobs:
           r-version: '4.6.1'
           use-public-rspm: true
 
-      # Pinned by full commit SHA, into a temporary library. A branch reference
-      # would let one new org commit change every caller's gate, with no diff
-      # in any caller.
-      - name: Install org
+      # org is pinned by full commit SHA. lintr and cyclocomp are pinned by
+      # version, and the versions are asserted below. A branch reference or a
+      # floating version would let one upstream release change every caller's
+      # gate, with no diff in any caller.
+      - name: Install the gate packages
         env:
-          ORG_LIB: ${{ runner.temp }}/loc-limit-library
+          LINTR_VERSION: ${{ inputs.lintr-version }}
+          CYCLOCOMP_VERSION: ${{ inputs.cyclocomp-version }}
         shell: Rscript {0}
         run: |
-          lib <- Sys.getenv("ORG_LIB")
+          lib <- Sys.getenv("GATE_LIB")
           dir.create(lib, recursive = TRUE, showWarnings = FALSE)
           install.packages(
             "pak",
@@ -74,30 +106,65 @@ jobs:
           )
           .libPaths(c(lib, .libPaths()))
           pak::pak(
-            "raubreywhite/org@33f76369f6eceb9fcb1eb7734500e52450e27384",
+            c(
+              "raubreywhite/org@33f76369f6eceb9fcb1eb7734500e52450e27384",
+              "lintr",
+              "cyclocomp"
+            ),
             lib = lib,
             ask = FALSE
           )
 
-      # org::loc_per_file() is the single implementation of the count. Do not
-      # reimplement it here.
-      - name: Check the code lines in every code file in R/
-        env:
-          ORG_LIB: ${{ runner.temp }}/loc-limit-library
-          MAX_LOC: ${{ inputs.max-loc }}
-          LOC_ALLOWLIST: ${{ inputs.loc-allowlist }}
-        shell: Rscript {0}
-        run: |
-          .libPaths(c(Sys.getenv("ORG_LIB"), .libPaths()))
+          # pak accepts pkg@version for a CRAN package and then installs the
+          # repository's current version anyway, with no error and no warning.
+          # Measured on pak 0.9.0: pkg_deps("cran::lintr@99.0.0") returned
+          # 3.3.0-1. So step the version here, and assert it below. Never
+          # trust the ref syntax alone.
+          want <- c(
+            lintr = Sys.getenv("LINTR_VERSION"),
+            cyclocomp = Sys.getenv("CYCLOCOMP_VERSION")
+          )
+          for (p in names(want)) {
+            got <- as.character(utils::packageVersion(p, lib.loc = lib))
+            if (!identical(got, want[[p]])) {
+              remotes::install_version(
+                p,
+                version = want[[p]],
+                lib = lib,
+                dependencies = FALSE,
+                upgrade = "never"
+              )
+            }
+          }
 
-          max_loc <- suppressWarnings(as.numeric(Sys.getenv("MAX_LOC")))
-          if (is.na(max_loc)) {
+          got <- vapply(
+            names(want),
+            function(p) as.character(utils::packageVersion(p, lib.loc = lib)),
+            character(1)
+          )
+          if (!identical(unname(got), unname(want))) {
             stop(
-              "max-loc must be one number. It arrived as: ",
-              Sys.getenv("MAX_LOC"),
+              "The gate needs these versions:\n",
+              paste0("  ", names(want), " ", want, collapse = "\n"),
+              "\nIt installed these:\n",
+              paste0("  ", names(got), " ", got, collapse = "\n"),
+              "\nRe-measure the package, then change lintr-version or",
+              " cyclocomp-version.",
               call. = FALSE
             )
           }
+          cat(
+            "Gate packages: ",
+            paste0(names(got), " ", got, collapse = ", "), "\n",
+            sep = ""
+          )
+
+      # This step is the one selection rule. Both gates below read the list it
+      # writes. A second listing somewhere else is how one gate comes to check
+      # a file the other does not.
+      - name: Select the package code files
+        shell: Rscript {0}
+        run: |
 
           # R collates every file in R/ whose extension is in
           # tools:::.make_file_exts("code"). Sys.glob("R/*.R") saw one of the
@@ -156,6 +223,34 @@ jobs:
               call. = FALSE
             )
           }
+          writeLines(files, Sys.getenv("CODE_FILES"))
+          cat("Selected ", length(files), " code files.\n", sep = "")
+
+      # org::loc_per_file() is the single implementation of the count. Do not
+      # reimplement it here.
+      - name: Check the code lines in every code file
+        env:
+          MAX_LOC: ${{ inputs.max-loc }}
+          LOC_ALLOWLIST: ${{ inputs.loc-allowlist }}
+        shell: Rscript {0}
+        run: |
+          .libPaths(c(Sys.getenv("GATE_LIB"), .libPaths()))
+          files <- readLines(Sys.getenv("CODE_FILES"))
+
+          # An empty list would pass as compliance. The selection step already
+          # stops on it, so reaching here empty means the list did not survive
+          # to this step.
+          if (length(files) == 0) {
+            stop("The code file list is empty, so this gate checked nothing.", call. = FALSE)
+          }
+          max_loc <- suppressWarnings(as.numeric(Sys.getenv("MAX_LOC")))
+          if (is.na(max_loc)) {
+            stop(
+              "max-loc must be one number. It arrived as: ",
+              Sys.getenv("MAX_LOC"),
+              call. = FALSE
+            )
+          }
 
           allowlist <- strsplit(Sys.getenv("LOC_ALLOWLIST"), "\n", fixed = TRUE)[[1]]
           allowlist <- trimws(allowlist)
@@ -190,8 +285,154 @@ jobs:
             sep = ""
           )
 
+      # Runs even when the code-line limit failed, so one push reports both.
+      # Otherwise you fix the length, push, and only then meet the lints.
+      - name: Lint every code file
+        if: ${{ !cancelled() }}
+        env:
+          MAX_CYCLOCOMP: ${{ inputs.max-cyclocomp }}
+          LINT_ALLOWLIST: ${{ inputs.lint-allowlist }}
+        shell: Rscript {0}
+        run: |
+          .libPaths(c(Sys.getenv("GATE_LIB"), .libPaths()))
+          files <- readLines(Sys.getenv("CODE_FILES"))
+          if (length(files) == 0) {
+            stop("The code file list is empty, so this gate checked nothing.", call. = FALSE)
+          }
+
+          max_cyclocomp <- suppressWarnings(as.integer(Sys.getenv("MAX_CYCLOCOMP")))
+          if (is.na(max_cyclocomp)) {
+            stop(
+              "max-cyclocomp must be one whole number. It arrived as: ",
+              Sys.getenv("MAX_CYCLOCOMP"),
+              call. = FALSE
+            )
+          }
+
+          # lintr drops cyclocomp_linter() when cyclocomp is absent. The gate
+          # would then check one thing less and still report success.
+          if (!requireNamespace("cyclocomp", quietly = TRUE)) {
+            stop(
+              "cyclocomp is not installed, so cyclocomp_linter() would check nothing.",
+              call. = FALSE
+            )
+          }
+
+          # An explicit list, never lintr::default_linters. A lintr release
+          # adds new default linters, so a defaults-based gate turns red on a
+          # package that did not change. That is why r-version is pinned too.
+          linters <- list(
+            cyclocomp_linter = lintr::cyclocomp_linter(max_cyclocomp),
+            seq_linter = lintr::seq_linter(),
+            vector_logic_linter = lintr::vector_logic_linter(),
+            T_and_F_symbol_linter = lintr::T_and_F_symbol_linter(),
+            condition_call_linter = lintr::condition_call_linter(),
+            nonportable_path_linter = lintr::nonportable_path_linter(),
+            # The house style is an explicit return(). org is written that way
+            # and most of the fleet is not, so this linter is what makes them
+            # agree.
+            return_linter = lintr::return_linter(return_style = "explicit"),
+            # The house rules that no other tool checks.
+            undesirable_function_linter = lintr::undesirable_function_linter(
+              fun = c(
+                sapply = "use vapply(), which pins the return type",
+                setwd = "use the paths org::project gives you",
+                attach = "never; it hides where a name came from",
+                saveRDS = "use qs2::qs_save()",
+                readRDS = "use qs2::qs_read()"
+              )
+            )
+          )
+
+          # parse_settings = FALSE, so a .lintr file inside a package cannot
+          # weaken the shared gate. Exemptions go through lint-allowlist, which
+          # this step checks for staleness.
+          found <- do.call(rbind, lapply(files, function(f) {
+            l <- lintr::lint(f, linters = linters, parse_settings = FALSE)
+            if (length(l) == 0) {
+              return(NULL)
+            }
+            # Carry the path from the selection list, not lintr's own
+            # filename. lintr returns an absolute path, and lint-allowlist
+            # entries are repo-relative, so matching on lintr's path would
+            # make every allowlist entry look unused.
+            data.frame(
+              file = f,
+              line = vapply(l, function(x) x$line_number, integer(1)),
+              linter = vapply(l, function(x) x$linter, character(1)),
+              message = vapply(l, function(x) x$message, character(1)),
+              stringsAsFactors = FALSE
+            )
+          }))
+          if (is.null(found)) {
+            found <- data.frame(
+              file = character(),
+              line = integer(),
+              linter = character(),
+              message = character(),
+              stringsAsFactors = FALSE
+            )
+          }
+
+          allowlist <- strsplit(Sys.getenv("LINT_ALLOWLIST"), "\n", fixed = TRUE)[[1]]
+          allowlist <- trimws(allowlist)
+          allowlist <- allowlist[nzchar(allowlist)]
+
+          malformed <- allowlist[!grepl("^[^:]+:[A-Za-z0-9._]+$", allowlist)]
+          if (length(malformed) > 0) {
+            stop(
+              "These lint-allowlist entries are not <path>:<linter>:\n",
+              paste0("  ", malformed, collapse = "\n"),
+              call. = FALSE
+            )
+          }
+
+          # Two staleness checks, because an entry can go stale two ways. The
+          # file can disappear, and the lint can be fixed while the entry stays.
+          entry_file <- sub(":[^:]*$", "", allowlist)
+          stale_file <- allowlist[!entry_file %in% files]
+          if (length(stale_file) > 0) {
+            stop(
+              "These lint-allowlist entries name no file this gate checks:\n",
+              paste0("  ", stale_file, collapse = "\n"),
+              "\nRemove them from lint-allowlist.",
+              call. = FALSE
+            )
+          }
+
+          key <- paste0(found$file, ":", found$linter)
+          unused <- setdiff(allowlist, key)
+          if (length(unused) > 0) {
+            stop(
+              "These lint-allowlist entries suppress no lint:\n",
+              paste0("  ", unused, collapse = "\n"),
+              "\nRemove them from lint-allowlist.",
+              call. = FALSE
+            )
+          }
+
+          over <- found[!key %in% allowlist, , drop = FALSE]
+          if (nrow(over) > 0) {
+            stop(
+              "These lints must be fixed:\n",
+              paste0(
+                "  ", over$file, ":", over$line, "  ",
+                over$linter, "  ", over$message,
+                collapse = "\n"
+              ),
+              "\nFix them, or add <path>:<linter> to lint-allowlist.",
+              call. = FALSE
+            )
+          }
+
+          cat(
+            "Linted ", length(files), " files with ", length(linters),
+            " linters. No findings.\n",
+            sep = ""
+          )
+
   R-CMD-check:
-    needs: loc-limit
+    needs: static-checks
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -236,7 +477,7 @@ jobs:
           error-on: '"note"'
 
   pkgdown:
-    needs: [loc-limit, R-CMD-check]
+    needs: [static-checks, R-CMD-check]
     runs-on: ubuntu-latest
     permissions:
       contents: write
