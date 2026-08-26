@@ -65,12 +65,18 @@ jobs:
       contents: read
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      # Both paths sit beside the checkout, never inside it. The runner
+      # context is not available in a job-level env, so these use
+      # github.workspace. With runner.temp here GitHub rejects the whole
+      # workflow: the run fails before any job starts and reports no job at
+      # all, which reads like a broken gate rather than a syntax error.
+      #
       # One library for both gates. Two libraries could load two different
       # trees, and then the two checks would not describe the same package.
-      GATE_LIB: ${{ runner.temp }}/static-checks-library
+      GATE_LIB: ${{ github.workspace }}/../static-checks-library
       # The one file list. Both gates read this file, so the code-line limit
       # and the linter cannot check different files.
-      CODE_FILES: ${{ runner.temp }}/code-files.txt
+      CODE_FILES: ${{ github.workspace }}/../code-files.txt
 
     steps:
       - uses: actions/checkout@v4
