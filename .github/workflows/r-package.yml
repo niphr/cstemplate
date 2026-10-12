@@ -523,13 +523,15 @@ jobs:
 
       # pkgdown:::package_mds() globs every root *.md and excludes only a fixed
       # list (README, LICENSE, NEWS, cran-comments, the issue templates). There
-      # is no setting for it, so CLAUDE.md renders to docs/CLAUDE.html.
+      # is no setting for it, so CLAUDE.md renders to docs/CLAUDE.html and
+      # AGENTS.md renders to docs/AGENTS.html.
       #
       # pkgdown then writes that page text into two more files.
       # build_llm_docs() converts every *.html under docs/ to a *.md beside it,
-      # which is where docs/CLAUDE.md comes from. build_search() writes the
-      # text of every page into docs/search.json. The deploy step ships the
-      # whole docs/ directory, so all three files must go.
+      # which is where docs/CLAUDE.md and docs/AGENTS.md come from.
+      # build_search() writes the text of every page into docs/search.json.
+      # The deploy step ships the whole docs/ directory, so each page, its .md
+      # sibling and its search.json entries must all go.
       #
       # Under `set -e`, a pipeline that starts with `!` never aborts the script.
       # So a `! grep` assertion is inert unless it is the step's last command.
@@ -548,15 +550,20 @@ jobs:
             exit 1
           fi
           # Only one caller publishes a PROJECT.md, so PROJECT stays optional.
-          rm -f docs/CLAUDE.html docs/CLAUDE.md docs/PROJECT.html docs/PROJECT.md
+          # AGENTS stays optional too: a caller without AGENTS.md has no
+          # docs/AGENTS.html, and `rm -f` passes on a missing file.
+          rm -f docs/CLAUDE.html docs/CLAUDE.md docs/PROJECT.html docs/PROJECT.md \
+            docs/AGENTS.html docs/AGENTS.md
 
           sed -i \
             -e '\|<url><loc>[^<]*/CLAUDE\.[^<]*</loc></url>|d' \
             -e '\|<url><loc>[^<]*/PROJECT\.[^<]*</loc></url>|d' \
+            -e '\|<url><loc>[^<]*/AGENTS\.[^<]*</loc></url>|d' \
             docs/sitemap.xml
 
           # Match on the `path` field, never on the text. A page that survives
-          # may name CLAUDE.md for a good reason, and the cs9 changelog does.
+          # may name CLAUDE.md or AGENTS.md for a good reason, and the cs9
+          # changelog names CLAUDE.md.
           # A site with search turned off has no docs/search.json, which is not
           # an error. Any parse failure exits non-zero, and this is a plain
           # assignment, so `set -e` fails the step. A malformed file cannot
@@ -568,7 +575,7 @@ jobs:
           import sys
 
           P = "docs/search.json"
-          AGENT = re.compile(r"^(CLAUDE|PROJECT)\.")
+          AGENT = re.compile(r"^(CLAUDE|PROJECT|AGENTS)\.")
 
 
           def load():
@@ -597,9 +604,9 @@ jobs:
           PY
           )
 
-          if grep -qE 'CLAUDE\.|PROJECT\.' docs/sitemap.xml; then
+          if grep -qE 'CLAUDE\.|PROJECT\.|AGENTS\.' docs/sitemap.xml; then
             echo "docs/sitemap.xml still lists an agent instructions page:"
-            grep -nE 'CLAUDE\.|PROJECT\.' docs/sitemap.xml
+            grep -nE 'CLAUDE\.|PROJECT\.|AGENTS\.' docs/sitemap.xml
             exit 1
           fi
 
@@ -610,7 +617,7 @@ jobs:
           fi
 
           # This assertion catches any further extension that pkgdown emits.
-          left=$(find docs \( -name 'CLAUDE.*' -o -name 'PROJECT.*' \) -print)
+          left=$(find docs \( -name 'CLAUDE.*' -o -name 'PROJECT.*' -o -name 'AGENTS.*' \) -print)
           if [ -n "$left" ]; then
             echo "These agent instruction files survive under docs/:"
             echo "$left"
