@@ -1,0 +1,70 @@
+# Builds the package documentation with csdocs::build_site() and force-pushes
+# it to one branch, where github.com shows the Markdown as clickable pages. The
+# output is the function reference, every vignette and a front page. The branch
+# holds one commit and no history, because each run replaces it.
+#
+# A caller MUST grant `permissions: contents: write` on the job that calls this
+# workflow. A reusable workflow runs with the token of its caller, and it can
+# only lower the permissions of that token.
+#
+# Nothing is pinned. csdocs installs as the latest build from
+# https://niphr.r-universe.dev, and callers use this file at @main.
+on:
+  workflow_call:
+    inputs:
+      branch:
+        description: >
+          The branch that receives the documentation. Each run replaces it with
+          one commit.
+        type: string
+        default: docs
+
+name: Docs branch
+
+jobs:
+  docs-branch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+          extra-repositories: https://niphr.r-universe.dev
+
+      # local::. installs the package itself, because its vignettes call
+      # library() on it.
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: |
+            any::csdocs
+            any::rmarkdown
+            any::knitr
+            local::.
+
+      - name: Build the documentation
+        run: Rscript -e 'csdocs::build_site(".", file.path(Sys.getenv("RUNNER_TEMP"), "docs"))'
+
+      # The commit message names the csdocs build, so a changed page can be
+      # traced to the csdocs commit that produced it.
+      - name: Record the csdocs version
+        run: Rscript -e 'd <- utils::packageDescription("csdocs"); f <- function(x) if (is.null(x) || is.na(x)) "NA" else x; cat("CSDOCS_VERSION=", f(d$Version), "\n", "CSDOCS_SHA=", f(d$RemoteSha), "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)'
+
+      - name: Replace the branch
+        working-directory: ${{ runner.temp }}/docs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ inputs.branch }}
+        run: |
+          git init -q -b "$BRANCH"
+          git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "Documentation for ${GITHUB_SHA}, built with csdocs ${CSDOCS_VERSION} (${CSDOCS_SHA})"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "$BRANCH"

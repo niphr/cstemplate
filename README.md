@@ -57,3 +57,20 @@ inst/pkgdown/
 
 The umbrella registry site (niphr.github.io) is a Jekyll site; it reuses the same
 palette and fonts via its own stylesheet so the two stay visually in sync.
+
+## Publish Markdown documentation to a branch
+
+`.github/workflows/docs-branch.yml` builds the documentation with
+`csdocs::build_site()` and force-pushes it to the `docs` branch. Use it where
+pkgdown cannot publish, for example in a private repository. The caller job
+MUST grant `contents: write`:
+
+```yaml
+jobs:
+  docs:
+    permissions:
+      contents: write
+    uses: niphr/cstemplate/.github/workflows/docs-branch.yml@main
+```
+
+Set the `branch` input to publish to a branch other than `docs`.
