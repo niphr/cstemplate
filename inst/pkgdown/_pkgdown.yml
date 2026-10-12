@@ -45,6 +45,8 @@ navbar:
         href: https://niphr.github.io/csdata/
       - text: "csdb — database access"
         href: https://niphr.github.io/csdb/
+      - text: "csdocs — package documentation"
+        href: https://niphr.github.io/csdocs/
       - text: "csmaps — maps of Norway"
         href: https://niphr.github.io/csmaps/
       - text: "csstyle — output styling"
@@ -72,6 +74,7 @@ footer:
         <a href="https://niphr.github.io/csalert/">csalert</a>
         <a href="https://niphr.github.io/csdata/">csdata</a>
         <a href="https://niphr.github.io/csdb/">csdb</a>
+        <a href="https://niphr.github.io/csdocs/">csdocs</a>
         <a href="https://niphr.github.io/csmaps/">csmaps</a>
         <a href="https://niphr.github.io/csstyle/">csstyle</a>
         <a href="https://niphr.github.io/cstidy/">cstidy</a>
