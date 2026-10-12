@@ -55,8 +55,27 @@ jobs:
 
       # The commit message names the csdocs build, so a changed page can be
       # traced to the csdocs commit that produced it.
+      #
+      # The commit comes from the r-universe API, not from packageDescription().
+      # pak installs csdocs from r-universe as a standard repository package and
+      # writes the version into RemoteSha. The API names the commit that
+      # r-universe built the current version from. The step uses that commit
+      # only when the API version equals the installed version. Otherwise it
+      # writes NA, and it never fails the job. jsonlite is present because
+      # rmarkdown imports it.
       - name: Record the csdocs version
-        run: Rscript -e 'd <- utils::packageDescription("csdocs"); f <- function(x) if (is.null(x) || is.na(x)) "NA" else x; cat("CSDOCS_VERSION=", f(d$Version), "\n", "CSDOCS_SHA=", f(d$RemoteSha), "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)'
+        shell: Rscript {0}
+        run: |
+          v <- utils::packageDescription("csdocs")$Version
+          api <- tryCatch(
+            jsonlite::fromJSON("https://niphr.r-universe.dev/api/packages/csdocs"),
+            error = function(e) NULL
+          )
+          sha <- if (is.list(api)) api$RemoteSha else NULL
+          ok <- is.character(sha) && length(sha) == 1L &&
+            identical(api$Version, v) && grepl("^[0-9a-f]{40}$", sha)
+          f <- function(x) if (is.null(x) || is.na(x)) "NA" else x
+          cat("CSDOCS_VERSION=", f(v), "\n", "CSDOCS_SHA=", if (ok) sha else "NA", "\n", sep = "", file = Sys.getenv("GITHUB_ENV"), append = TRUE)
 
       - name: Replace the branch
         working-directory: ${{ runner.temp }}/docs
